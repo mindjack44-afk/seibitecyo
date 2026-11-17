@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#22262b">
+<title>整備手帳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 実用、整備士の手帳。短く、太く、迷わない
+   IDEA: 工場の作業伝票（ジョブチケット）を束ねた整備手帳
+   PICTURE: 伝票カードの束そのもの。日付・距離が大きく効く
+   COLOUR and TYPE: 白／グラファイト、伝票の赤タグ1色。Zen Kaku Gothic New＋数字はBarlow Condensed
+   LAYOUT: 上に検索と車両チップ、下に伝票リスト、右下に追加ボタン */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#16181b);--ink:light-dark(#1d2024,#eceae6);--sub:light-dark(#6a6f76,#9aa0a7);--card:light-dark(#f3f3f1,#202328);--line:light-dark(#dcdcd8,#33373d);--head:light-dark(#22262b,#0e1012);--red:light-dark(#d4231b,#ff5a4e);--chip:light-dark(#e8e8e5,#2a2e34)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Zen Kaku Gothic New",system-ui,sans-serif;overflow-x:clip;padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+.num{font-family:"Barlow Condensed","Zen Kaku Gothic New",sans-serif;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+header{background:var(--head);color:#f2f0ec;padding:calc(18px + env(safe-area-inset-top)) max(5vw,16px) 18px}
+.top{max-width:860px;margin:0 auto}
+h1{margin:0 0 12px;font-size:32px;line-height:1.05;font-weight:900;display:flex;align-items:center;gap:10px}
+h1 svg{flex:none}
+.st{font-size:13px;color:#b9bdc2;font-weight:400;margin-left:auto}
+.sbox{position:relative}
+.sbox input{width:100%;height:50px;border-radius:12px;border:0;padding:0 44px 0 44px;font:inherit;font-size:17px;background:#fff;color:#1d2024}
+.sbox svg{position:absolute;left:14px;top:15px}
+.clr{position:absolute;right:6px;top:5px;width:40px;height:40px;border:0;background:none;font-size:22px;color:#888;cursor:pointer;display:none}
+main{max-width:860px;margin:0 auto;padding:14px max(5vw,16px)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.chip{flex:none;height:38px;padding:0 14px;border-radius:19px;border:1px solid var(--line);background:var(--chip);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 14px}
+.sum div{background:var(--card);border-radius:12px;padding:10px 12px}
+.sum b{display:block;font-size:24px;line-height:1.1}
+.sum span{font-size:13px;color:var(--sub)}
+.list{display:grid;gap:10px}
+.tk{background:var(--card);border-radius:14px;padding:14px 16px 12px;border-left:6px solid var(--red);cursor:pointer;position:relative}
+.tk:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.r1{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.d{font-size:22px}.km{font-size:18px;color:var(--sub)}.cost{margin-left:auto;font-size:20px}
+.r2{display:flex;gap:8px;align-items:center;margin:4px 0 2px;flex-wrap:wrap}
+.tag{font-size:13px;font-weight:700;color:#fff;background:var(--red);border-radius:6px;padding:1px 8px}
+.veh{font-size:14px;color:var(--sub)}
+.ttl{font-weight:700;font-size:17px;margin:2px 0}
+.pt,.mm{font-size:14px;color:var(--sub);white-space:pre-wrap;overflow-wrap:anywhere}
+mark{background:light-dark(#ffe28a,#7a5f00);color:inherit;border-radius:3px}
+.empty{text-align:center;color:var(--sub);padding:48px 12px}
+.empty svg{opacity:.5}
+.fab{position:fixed;right:max(5vw,16px);bottom:calc(20px + env(safe-area-inset-bottom));height:60px;padding:0 24px 0 20px;border-radius:30px;border:0;background:var(--red);color:#fff;font:inherit;font-size:18px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer;display:flex;align-items:center;gap:8px}
+.ov{position:fixed;inset:0;background:rgba(10,12,14,.55);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.ov.on{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:620px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px max(4vw,16px) calc(18px + env(safe-area-inset-bottom))}
+@media(min-width:700px){.ov{align-items:center}.sheet{border-radius:18px}}
+.sheet h2{margin:0 0 12px;font-size:22px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+label{display:block;font-size:13px;color:var(--sub);margin:10px 0 4px}
+.sheet input,.sheet select,.sheet textarea{width:100%;min-height:46px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font:inherit;font-size:16px;background:var(--card);color:var(--ink)}
+textarea{resize:vertical;min-height:80px}
+.bt{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btn{min-height:46px;padding:0 18px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+.btn.p{background:var(--red);color:#fff;border-color:var(--red);flex:1}
+.btn.x{color:var(--red)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px;padding-top:14px;border-top:1px solid var(--line)}
+.tools .btn{font-weight:400;font-size:14px}
+.note{font-size:13px;color:var(--sub);margin-top:10px}
+.toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+.toast.on{opacity:1}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+@media(max-width:420px){.sum b{font-size:20px}h1{font-size:28px}}
+</style>
+</head>
+<body>
+<header><div class="top">
+  <h1><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ff5a4e" stroke-width="2.4" stroke-linecap="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>整備手帳<span class="st" id="st"></span></h1>
+  <div class="sbox">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+    <input id="q" type="search" placeholder="検索（例：オイル　モンキー　プラグ）" autocomplete="off">
+    <button class="clr" id="clr" aria-label="検索をクリア">×</button>
+  </div>
+</div></header>
+<main>
+  <div class="chips" id="vchips"></div>
+  <div class="chips" id="cchips"></div>
+  <div class="sum" id="sum"></div>
+  <div class="list" id="list"></div>
+  <div class="tools">
+    <button class="btn" id="exp">データをコピー（バックアップ）</button>
+    <button class="btn" id="imp">データを貼り付けて復元</button>
+    <button class="btn" id="dl">バックアップを送る</button>
+    <label class="btn" style="display:flex;align-items:center;margin:0;color:var(--ink);font-size:14px">ファイルから読込<input type="file" id="fl" accept=".json,application/json" hidden></label>
+  </div>
+  <p class="note">データはこの端末のこのブラウザに保存されます。機種変更や履歴の削除に備えて、ときどき「バックアップを送る」でGoogleドライブ等に保存してください（「ファイルから読込」で復元）。</p>
+</main>
+<button class="fab" id="add"><svg width="22" height="22" viewBox="0 0 24 24" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>記録</button>
+
+<div class="ov" id="ov"><form class="sheet" id="f">
+  <h2 id="ft">整備記録を追加</h2>
+  <div class="g2">
+    <div><label for="f_date">日付</label><input id="f_date" type="date" required></div>
+    <div><label for="f_km">走行距離（km）</label><input id="f_km" type="number" inputmode="numeric" min="0" step="1"></div>
+  </div>
+  <label for="f_veh">車両</label><input id="f_veh" list="vlist" required placeholder="例：モンキー（GPX125）"><datalist id="vlist"></datalist>
+  <div class="g2">
+    <div><label for="f_cat">区分</label><select id="f_cat"></select></div>
+    <div><label for="f_cost">費用（円）</label><input id="f_cost" type="number" inputmode="numeric" min="0" step="1"></div>
+  </div>
+  <label for="f_ttl">作業内容</label><input id="f_ttl" required placeholder="例：エンジンオイル交換＋フィルター">
+  <label for="f_pt">使用部品・品番</label><textarea id="f_pt" placeholder="例：G1 10W-30 0.9L"></textarea>
+  <label for="f_mm">メモ</label><textarea id="f_mm" placeholder="次回の予定や気づいたこと"></textarea>
+  <div class="bt">
+    <button type="button" class="btn x" id="del" hidden>削除</button>
+    <button type="button" class="btn" id="cancel">閉じる</button>
+    <button type="submit" class="btn p">保存</button>
+  </div>
+</form></div>
+
+<div class="ov" id="ov2"><div class="sheet">
+  <h2 id="t2"></h2><p id="m2" style="margin:0"></p>
+  <textarea id="ta2" hidden style="min-height:160px;margin-top:10px"></textarea>
+  <div class="bt"><button class="btn" id="n2">やめる</button><button class="btn p" id="y2">OK</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+{
+const CATS=['オイル交換','タイヤ','ブレーキ','チェーン・駆動','電装','キャブ・吸気','冷却','点検','車検・法定','カスタム','その他'];
+const LK='seibi-records-v1';
+const $=id=>document.getElementById(id);
+let recs=[],vSel='',cSel='',editId=null,col=null,mode='local';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const yen=n=>n||n===0?'¥'+Number(n).toLocaleString('ja-JP'):'';
+const kmf=n=>n||n===0?Number(n).toLocaleString('ja-JP')+' km':'';
+const toast=t=>{const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1800)};
+const lsGet=()=>{try{return JSON.parse(localStorage.getItem(LK)||'[]')}catch(e){return[]}};
+const lsSet=()=>{try{localStorage.setItem(LK,JSON.stringify(recs))}catch(e){}};
+const lsOk=()=>{try{localStorage.setItem('_t','1');localStorage.removeItem('_t');return true}catch(e){return false}};
+const setSt=()=>{$('st').textContent=mode==='db'?'クラウドに保存':'この端末に保存'};
+
+$('f_cat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
+
+function hl(s,ws){s=esc(s);for(const w of ws){if(!w)continue;const e=esc(w).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');s=s.replace(new RegExp(e,'gi'),m=>`<mark>${m}</mark>`)}return s}
+
+function render(){
+  const q=$('q').value.trim().toLowerCase();$('clr').style.display=q?'block':'none';
+  const ws=q.split(/[\s　]+/).filter(Boolean);
+  const vehs=[...new Set(recs.map(r=>r.veh).filter(Boolean))].sort();
+  if(vSel&&!vehs.includes(vSel))vSel='';
+  $('vchips').innerHTML=[['','すべての車両'],...vehs.map(v=>[v,v])].map(([v,l])=>`<button class="chip" data-v="${esc(v)}" aria-pressed="${v===vSel}">${esc(l)}</button>`).join('');
+  const usedC=CATS.filter(c=>recs.some(r=>r.cat===c));
+  $('cchips').innerHTML=usedC.length?[['','全区分'],...usedC.map(c=>[c,c])].map(([c,l])=>`<button class="chip" data-c="${esc(c)}" aria-pressed="${c===cSel}">${esc(l)}</button>`).join(''):'';
+  $('vlist').innerHTML=vehs.map(v=>`<option value="${esc(v)}">`).join('');
+  let L=recs.filter(r=>(!vSel||r.veh===vSel)&&(!cSel||r.cat===cSel));
+  if(ws.length)L=L.filter(r=>{const t=[r.date,r.veh,r.cat,r.ttl,r.pt,r.mm,r.km,r.cost].join(' ').toLowerCase();return ws.every(w=>t.includes(w))});
+  L.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.km||0)-(a.km||0)||(b.ts||0)-(a.ts||0));
+  const base=recs.filter(r=>!vSel||r.veh===vSel);
+  const oil=base.filter(r=>r.cat==='オイル交換').sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
+  const maxKm=Math.max(0,...base.map(r=>+r.km||0));
+  const tot=L.reduce((s,r)=>s+(+r.cost||0),0);
+  $('sum').innerHTML=recs.length?`<div><b class="num">${L.length}件</b><span>${ws.length||cSel?'該当':'記録'}</span></div><div><b class="num">${yen(tot)}</b><span>費用合計</span></div><div><b class="num">${oil?esc(oil.date.slice(2).replace(/-/g,'/')):'—'}</b><span>${oil&&oil.km&&vSel?'前回オイル '+esc(kmf(oil.km))+(maxKm>oil.km?'（+'+(maxKm-oil.km).toLocaleString()+'）':''):'前回オイル交換'}</span></div>`:'';
+  $('list').innerHTML=L.length?L.map(r=>`<article class="tk" tabindex="0" data-id="${esc(r.id)}">
+    <div class="r1"><span class="num d">${esc((r.date||'').replace(/-/g,'.'))}</span><span class="num km">${esc(kmf(r.km))}</span><span class="num cost">${esc(yen(r.cost))}</span></div>
+    <div class="r2"><span class="tag">${hl(r.cat,ws)}</span><span class="veh">${hl(r.veh,ws)}</span></div>
+    <div class="ttl">${hl(r.ttl,ws)}</div>${r.pt?`<div class="pt">部品：${hl(r.pt,ws)}</div>`:''}${r.mm?`<div class="mm">${hl(r.mm,ws)}</div>`:''}</article>`).join('')
+  :`<div class="empty"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg><p>${recs.length?'条件に合う記録がありません':'まだ記録がありません。右下の「記録」から追加してください。'}</p></div>`;
+}
+
+function openForm(r){
+  editId=r?r.id:null;$('ft').textContent=r?'整備記録を編集':'整備記録を追加';$('del').hidden=!r;
+  const last=recs.slice().sort((a,b)=>(b.ts||0)-(a.ts||0))[0];
+  $('f_date').value=r?r.date:new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+  $('f_km').value=r?.km??'';$('f_veh').value=r?r.veh:(vSel||last?.veh||'');
+  $('f_cat').value=r?r.cat:(cSel||CATS[0]);$('f_cost').value=r?.cost??'';
+  $('f_ttl').value=r?.ttl||'';$('f_pt').value=r?.pt||'';$('f_mm').value=r?.mm||'';
+  $('ov').classList.add('on');setTimeout(()=>$('f_ttl').focus(),50);
+}
+const closeForm=()=>$('ov').classList.remove('on');
+
+function ask(t,m,withText){return new Promise(res=>{$('t2').textContent=t;$('m2').textContent=m;$('ta2').hidden=!withText;$('ta2').value='';$('ov2').classList.add('on');
+  const done=v=>{$('ov2').classList.remove('on');$('y2').onclick=$('n2').onclick=null;res(v)};
+  $('y2').onclick=()=>done(withText?$('ta2').value:true);$('n2').onclick=()=>done(false)})}
+
+async function save(r){
+  const i=recs.findIndex(x=>x.id===r.id);if(i>=0)recs[i]=r;else recs.push(r);lsSet();render();
+  if(col){try{await col.doc(r.id).set(r)}catch(e){toast(e?.code==='quota_exceeded'?'保存容量がいっぱいです':'クラウド保存に失敗（端末には保存済み）')}}
+}
+async function remove(id){
+  recs=recs.filter(x=>x.id!==id);lsSet();render();
+  if(col){try{await col.doc(id).delete()}catch(e){toast('クラウド削除に失敗')}}
+}
+
+$('f').addEventListener('submit',e=>{e.preventDefault();
+  const n=v=>v===''?null:Math.max(0,Math.round(+v));
+  const r={id:editId||('r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),date:$('f_date').value,km:n($('f_km').value),veh:$('f_veh').value.trim(),cat:$('f_cat').value,cost:n($('f_cost').value),ttl:$('f_ttl').value.trim(),pt:$('f_pt').value.trim(),mm:$('f_mm').value.trim(),ts:Date.now()};
+  closeForm();save(r);toast('保存しました')});
+$('cancel').onclick=closeForm;
+$('del').onclick=async()=>{const id=editId;closeForm();if(await ask('この記録を削除しますか？','元に戻せません。')){remove(id);toast('削除しました')}};
+$('add').onclick=()=>openForm(null);
+$('q').addEventListener('input',render);
+$('clr').onclick=()=>{$('q').value='';render();$('q').focus()};
+$('vchips').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(b){vSel=b.dataset.v;render()}});
+$('cchips').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b){cSel=b.dataset.c;render()}});
+$('list').addEventListener('click',e=>{const t=e.target.closest('.tk');if(t)openForm(recs.find(r=>r.id===t.dataset.id))});
+$('list').addEventListener('keydown',e=>{if(e.key==='Enter'){const t=e.target.closest('.tk');if(t)openForm(recs.find(r=>r.id===t.dataset.id))}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeForm();$('n2').click?.()}});
+$('exp').onclick=async()=>{if(window.AndroidBridge){AndroidBridge.copy(JSON.stringify(recs));toast(recs.length+'件をコピーしました');return}try{await navigator.clipboard.writeText(JSON.stringify(recs));toast(recs.length+'件をコピーしました')}catch(e){toast('コピーできませんでした')}};
+$('imp').onclick=async()=>{const t=await ask('データを復元','バックアップでコピーした文字を貼り付けてください。同じ記録は上書きされます。',true);if(!t)return;
+  try{const a=JSON.parse(t);if(!Array.isArray(a))throw 0;let c=0;for(const r of a){if(r&&r.id&&r.date){await save({id:String(r.id),date:String(r.date),km:r.km??null,veh:String(r.veh||''),cat:CATS.includes(r.cat)?r.cat:'その他',cost:r.cost??null,ttl:String(r.ttl||''),pt:String(r.pt||''),mm:String(r.mm||''),ts:+r.ts||Date.now()});c++}}toast(c+'件を復元しました')}catch(e){toast('形式が正しくありません')}};
+
+async function importArr(a){if(!Array.isArray(a))throw 0;let c=0;for(const r of a){if(r&&r.id&&r.date){await save({id:String(r.id),date:String(r.date),km:r.km??null,veh:String(r.veh||''),cat:CATS.includes(r.cat)?r.cat:'その他',cost:r.cost??null,ttl:String(r.ttl||''),pt:String(r.pt||''),mm:String(r.mm||''),ts:+r.ts||Date.now()});c++}}toast(c+'件を読み込みました')}
+$('dl').onclick=()=>{if(window.AndroidBridge){AndroidBridge.share(JSON.stringify(recs));return}const b=new Blob([JSON.stringify(recs,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='seibi-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$('fl').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{await importArr(JSON.parse(await f.text()))}catch(x){toast('形式が正しくありません')}e.target.value=''};
+window.andBack=()=>{for(const id of ['ov2','ov']){if($(id).classList.contains('on')){id==='ov2'?$('n2').click():closeForm();return true}}if($('q').value){$('q').value='';render();return true}return false};
+recs=lsGet();setSt();render();
+if(!lsOk())toast('この環境では保存できません');
+
+}
+</script>
+</body>
+</html>
